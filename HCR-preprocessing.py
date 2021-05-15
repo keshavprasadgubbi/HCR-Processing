@@ -1,19 +1,11 @@
 # *** Author: Keshava Prasad Gubbi***
 # Script for pre-processing Inbal's HCR Lines.
-# TODO: Read the filenames and split and determine names of sig1, sig2 and ref channels
-# TODO: Split the Czi imagefilename into respective channels and save it as tif with respective names as per channels.
-# TODO: Add Gaussian filtering to Images.
-# TODO: contrast enhancement, add a binary flag parameter (if needed or not needed)
-# TODO: make images sharper: using minimum 3D filtering.
-# TODO: Reduce background.
-# TODO: after going through all these processing, save as tif files with proper imagefilename names based on respective channels.
-# TODO: Create a separate script for automatic creation of alignment script for respective line.
+# DONE: Read the filenames and split and determine names of sig1, sig2 and ref channels
+# TODO: Split the Czi imagefilename into respective channels and save it as nrrd with respective names as per channels.
 
 import os
-import tifffile as tiff
 import numpy as np
 from aicspylibczi import CziFile
-import glob
 import re
 
 ########Splitting Channels####################
@@ -67,7 +59,8 @@ for file in os.listdir(c_path):
                     ref_channel_image = np.stack(image_list).astype('uint8')
                 else:
                     sig_channel_image = np.stack(image_list).astype('uint8')
-
+    else:
+        print("Not a .czi file. Please recheck File format!")
 ##################################################################################################
 
 # with tiff.TiffWriter(os.path.join(original_path, f'{name}_ref.tif')) as tifw:
