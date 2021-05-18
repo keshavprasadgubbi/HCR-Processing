@@ -13,13 +13,17 @@
 
 
 import os
+from collections import OrderedDict
+
 import nrrd
 from skimage import io, exposure, filters
 from skimage.filters.rank import mean_bilateral
 from skimage.morphology import disk
 import numpy as np
 import tifffile as tiff
+import SimpleITK as sitk
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data'
+# nrrd.reader.ALLOW_DUPLICATE_FIELD = True
 
 
 def convert_to_8bit(f):
@@ -64,10 +68,22 @@ for file in os.listdir(file_path):
     if file.endswith('.nrrd'):
         print(file)
 
-        data, header = nrrd.read(os.path.join(file_path, file))
+        data, header = nrrd.read(os.path.join(file_path, file),  index_order='C')
         print(data.shape)
-        with tiff.TiffWriter(os.path.join(file_path, file), imagej=True) as tifw:
-            tifw.write(data.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+        # print(header)
+        print('writing data...')
+        # with tiff.TiffWriter(os.path.join(file_path, file), imagej=True) as tifw:
+        #     tifw.write(data.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+
+        g = tiff.imread(os.path.join(file_path, file))
+        print(f'Image stack to be processed: {file}')
+        theta = float(input('Enter the angle by which image to be rotated:'))
+        processed_image = tiff_unstackAndrestack(os.path.join(file_path, file))
+        print(f'Creating Post-Processed Image: Processed_{file}')
+
+
+
+
 
         # print('Enhancing contrast.....')
         # # _8bit_image = convert_to_8bit(data)
@@ -80,10 +96,8 @@ for file in os.listdir(file_path):
 #
 #         # ****Contrast Enhancement, 8bit conversion, image processing with CV techniques******#
 #         g = tiff.imread(os.path.join(file_path, item))
-#         print(f'Image stack to be rotated: {item}')
+#         print(f'Image stack to be processed: {item}')
 #         theta = float(input('Enter the angle by which image to be rotated:'))
-#
-#
-#         rotated_image = tiff_unstackAndrestack(os.path.join(file_path, item))
+#         processed_image = tiff_unstackAndrestack(os.path.join(file_path, item))
 #         print(f'Creating Post-Processed Image: Processed_{item}')
 
