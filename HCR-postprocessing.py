@@ -14,13 +14,14 @@
 
 import os
 import nrrd
+import cv2
 from skimage import io, exposure, filters
 from skimage.filters.rank import mean_bilateral
 from skimage.morphology import disk
 import numpy as np
 import tifffile as tiff
 import SimpleITK as sitk
-file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data'
+file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\aligned\ccka_4'
 
 
 
@@ -53,7 +54,7 @@ def tiff_unstackAndrestack(f):
     with tiff.TiffFile(f, mode='r+b') as tif:
         print(f' Processing {tif} for rotation...')
         for page in tif.pages:
-            #pass
+            print('Enhancing contrast.....')
             processed_page = ce(page)
             bilat_img = mean_bilateral(processed_page, disk(20), s0=10, s1=10)
             processed_page_list = []
@@ -65,28 +66,20 @@ def tiff_unstackAndrestack(f):
 for file in os.listdir(file_path):
     if file.endswith('.nrrd'):
         print(file)
-
-        # data, header = nrrd.read(os.path.join(file_path, file),  index_order='C')
-        # print(data.shape)
-        reader = sitk.ImageFileReader()
-        reader.SetImageIO("BMPImageIO")
-        reader.SetFileName(os.path.join(file_path, file))
-        print(reader)
+        aligned_image = sitk.ReadImage(os.path.join(file_path, file))
+        print(aligned_image.GetPixelIDValue())
+        print(aligned_image.GetDimension())
+        print(aligned_image.GetSize())
         print('writing data...')
-        # with tiff.TiffWriter(os.path.join(file_path, file), imagej=True) as tifw:
-        #     tifw.write(data.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+        # with tiff.TiffWriter(os.path.join(file_path, f"{file}.tif"), imagej=True) as tifw:
+        #     tifw.write(aligned_image, metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+        cv2.imwrite(os.path.join(file_path, f"{file}.tif"), aligned_image)
+        # g = tiff.imread(aligned_image)
+        print(f'Image stack to be processed: {file}')
+        processed_image = tiff_unstackAndrestack(aligned_image)
+        print(f'Creating Post-Processed Image: Processed_{file}')
 
-        # g = tiff.imread(os.path.join(file_path, file))
-        # print(f'Image stack to be processed: {file}')
-        # theta = float(input('Enter the angle by which image to be rotated:'))
-        # processed_image = tiff_unstackAndrestack(os.path.join(file_path, file))
-        # print(f'Creating Post-Processed Image: Processed_{file}')
-
-
-
-
-
-        # print('Enhancing contrast.....')
+        #
         # # _8bit_image = convert_to_8bit(data)
         # CE_image = ce(data)
         # print(f'Creating file {file} as tif ...')
@@ -102,3 +95,5 @@ for file in os.listdir(file_path):
 #         processed_image = tiff_unstackAndrestack(os.path.join(file_path, item))
 #         print(f'Creating Post-Processed Image: Processed_{item}')
 
+# data, header = nrrd.read(os.path.join(file_path, file),  index_order='C')
+        # print(data.shape)
