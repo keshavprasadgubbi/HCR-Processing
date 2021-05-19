@@ -6,23 +6,21 @@
 # DONE: Enhance contrast on the array
 # DONE: write the respective array stack into a tiff file stack.
 # DONE: Read the tiff image and unstack page by page and do image processing and restack it
-# TODO: Gaussian Filtering/Bilateral Filtering in the array stack.
-# TODO: sharpen the image via minimum 3D filter/other sharpening tools.
-# TODO: Rewrite the respective array stack into a tiff file stack.
-#TODO: Loop over the z dim of the image stack and finish the processing and later restack again
+# DONE: Gaussian Filtering/Bilateral Filtering in the array stack.
+# DONE: sharpen the image via minimum 3D filter/other sharpening tools.
+# DONE: Rewrite the respective array stack into a tiff file stack.
+# DONE: Loop over the z dim of the image stack and finish the processing and later restack again
 
 
 import os
-import nrrd
-import cv2
-from skimage import io, exposure, filters
+from skimage import exposure
 from skimage.filters.rank import mean_bilateral
 from skimage.morphology import disk
 import numpy as np
 import tifffile as tiff
 import SimpleITK as sitk
+from scipy import ndimage, misc
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\aligned\ccka_4'
-
 
 
 def convert_to_8bit(f):
@@ -41,59 +39,43 @@ def ce(f):
     logarithmic_corrected = exposure.adjust_log(f, 1)
     return logarithmic_corrected
 
+def split_and_rename(f):
+    filename, exte = f.split('.')
+    return filename
 
-def tiff_unstackAndrestack(f):
-    '''
-    :param f: tiff file
-    :return: rotated_image_stack
-    #1. Iterate through each file as a tiff file.
-    #2. split into individual pages //Unstacking
-    #3. rotate each page and save the rotated_page into a new list
-    #4. restack each array from the list
-    '''
-    with tiff.TiffFile(f, mode='r+b') as tif:
-        print(f' Processing {tif} for rotation...')
-        for page in tif.pages:
-            print('Enhancing contrast.....')
-            processed_page = ce(page)
-            bilat_img = mean_bilateral(processed_page, disk(20), s0=10, s1=10)
-            processed_page_list = []
-            processed_page_list.append(bilat_img)
-            processed_image_stack = np.stack(processed_image_stack)
-    return processed_image_stack.astype('uint8')
+
+def tiff_unstackAndProcess(f):
+    aligned_image_array_list = list(sitk.GetArrayFromImage(f))
+    # we now have a list of 2D images and I can do processing on them and then restack them.
+    print(len(aligned_image_array_list))
+    for image in aligned_image_array_list:
+        print(image.shape)
+        ce_image = ce(image)
+        bilat_img = mean_bilateral(ce_image, disk(20), s0=10, s1=10)
+        min_filter_image = ndimage.minimum_filter(bilat_img, size=10)
+        processed_page_list = [min_filter_image]
+        processed_image_stack = np.stack(processed_page_list)
+        # print(processed_image_stack)
+        return processed_image_stack
 
 
 for file in os.listdir(file_path):
     if file.endswith('.nrrd'):
         print(file)
+        name = split_and_rename(file)
         aligned_image = sitk.ReadImage(os.path.join(file_path, file))
-        print(aligned_image.GetPixelIDValue())
-        print(aligned_image.GetDimension())
-        print(aligned_image.GetSize())
-        print('writing data...')
-        # with tiff.TiffWriter(os.path.join(file_path, f"{file}.tif"), imagej=True) as tifw:
-        #     tifw.write(aligned_image, metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
-        cv2.imwrite(os.path.join(file_path, f"{file}.tif"), aligned_image)
-        # g = tiff.imread(aligned_image)
-        print(f'Image stack to be processed: {file}')
-        processed_image = tiff_unstackAndrestack(aligned_image)
-        print(f'Creating Post-Processed Image: Processed_{file}')
-
-        #
-        # # _8bit_image = convert_to_8bit(data)
-        # CE_image = ce(data)
-        # print(f'Creating file {file} as tif ...')
-        # print(CE_image)
-
-# for item in os.listdir(file_path):
-#     if item.endswith(".tif"):
-#
-#         # ****Contrast Enhancement, 8bit conversion, image processing with CV techniques******#
-#         g = tiff.imread(os.path.join(file_path, item))
-#         print(f'Image stack to be processed: {item}')
-#         theta = float(input('Enter the angle by which image to be rotated:'))
-#         processed_image = tiff_unstackAndrestack(os.path.join(file_path, item))
-#         print(f'Creating Post-Processed Image: Processed_{item}')
-
-# data, header = nrrd.read(os.path.join(file_path, file),  index_order='C')
-        # print(data.shape)
+        # image_stack = tiff_unstackAndProcess(aligned_image)
+        aligned_image_array_list = list(sitk.GetArrayFromImage(aligned_image))
+        # we now have a list of 2D images and I can do processing on them and then restack them.
+        print(len(aligned_image_array_list))
+        for image in aligned_image_array_list:
+            # print(image.shape)
+            ce_image = ce(image)
+            bilat_img = mean_bilateral(ce_image, disk(20), s0=10, s1=10)
+            min_filter_image = ndimage.minimum_filter(bilat_img, size=10)
+            processed_page_list = [min_filter_image]
+            processed_image_stack = np.stack(processed_page_list)
+            # print(processed_image_stack)
+            # return processed_image_stack
+            with tiff.TiffWriter(os.path.join(file_path, f"{name}.tif"), imagej=True) as tifw:
+                tifw.write(processed_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
