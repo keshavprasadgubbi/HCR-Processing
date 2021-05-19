@@ -19,7 +19,7 @@ from skimage.morphology import disk
 import numpy as np
 import tifffile as tiff
 import SimpleITK as sitk
-from scipy import ndimage, misc
+from scipy import ndimage
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\aligned\ccka_4'
 
 
@@ -44,38 +44,28 @@ def split_and_rename(f):
     return filename
 
 
-def tiff_unstackAndProcess(f):
-    aligned_image_array_list = list(sitk.GetArrayFromImage(f))
-    # we now have a list of 2D images and I can do processing on them and then restack them.
-    print(len(aligned_image_array_list))
-    for image in aligned_image_array_list:
-        print(image.shape)
-        ce_image = ce(image)
-        bilat_img = mean_bilateral(ce_image, disk(20), s0=10, s1=10)
-        min_filter_image = ndimage.minimum_filter(bilat_img, size=10)
-        processed_page_list = [min_filter_image]
-        processed_image_stack = np.stack(processed_page_list)
-        # print(processed_image_stack)
-        return processed_image_stack
-
-
+processed_page_list = []
 for file in os.listdir(file_path):
     if file.endswith('.nrrd'):
         print(file)
         name = split_and_rename(file)
         aligned_image = sitk.ReadImage(os.path.join(file_path, file))
-        # image_stack = tiff_unstackAndProcess(aligned_image)
         aligned_image_array_list = list(sitk.GetArrayFromImage(aligned_image))
         # we now have a list of 2D images and I can do processing on them and then restack them.
         print(len(aligned_image_array_list))
         for image in aligned_image_array_list:
-            # print(image.shape)
+            print(image.shape)
             ce_image = ce(image)
             bilat_img = mean_bilateral(ce_image, disk(20), s0=10, s1=10)
             min_filter_image = ndimage.minimum_filter(bilat_img, size=10)
-            processed_page_list = [min_filter_image]
-            processed_image_stack = np.stack(processed_page_list)
-            # print(processed_image_stack)
-            # return processed_image_stack
-            with tiff.TiffWriter(os.path.join(file_path, f"{name}.tif"), imagej=True) as tifw:
-                tifw.write(processed_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+            processed_page_list.append(min_filter_image)
+        # print(len(processed_page_list))
+        processed_image_stack = np.stack(processed_page_list)
+        # print('processed_image_stack')
+        # print(processed_image_stack.shape)
+        # print(len(processed_image_stack))
+
+        print(f'Writing image {name}.tif')
+        with tiff.TiffWriter(os.path.join(file_path, f"{name}.tif"), imagej=True) as tifw:
+            tifw.write(processed_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
+
