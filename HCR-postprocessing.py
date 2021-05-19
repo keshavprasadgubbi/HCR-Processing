@@ -15,7 +15,10 @@
 import os
 from skimage import exposure
 from skimage.filters.rank import mean_bilateral
+from skimage.restoration import  denoise_bilateral
 from skimage.morphology import disk
+from skimage.filters import gaussian
+import cv2
 import numpy as np
 import tifffile as tiff
 import SimpleITK as sitk
@@ -36,8 +39,9 @@ def convert_to_8bit(f):
 
 def ce(f):
     # i = img_as_float(io.imread(f)).astype(np.float64)
-    logarithmic_corrected = exposure.adjust_log(f, 1)
+    logarithmic_corrected = exposure.adjust_log(f, 50)
     return logarithmic_corrected
+
 
 def split_and_rename(f):
     filename, exte = f.split('.')
@@ -54,11 +58,14 @@ for file in os.listdir(file_path):
         # we now have a list of 2D images and I can do processing on them and then restack them.
         print(len(aligned_image_array_list))
         for image in aligned_image_array_list:
-            print(image.shape)
+            # print(image.shape)
             ce_image = ce(image)
-            bilat_img = mean_bilateral(ce_image, disk(20), s0=10, s1=10)
-            min_filter_image = ndimage.minimum_filter(bilat_img, size=10)
-            processed_page_list.append(min_filter_image)
+            min_filter_image = ndimage.minimum_filter(ce_image, size=1)
+            # filtered_image1 = cv2.medianBlur(ce_image, 1)
+            filtered_image = cv2.bilateralFilter(min_filter_image.astype('uint8'), 9, 75, 75)
+
+
+            processed_page_list.append(filtered_image)
         # print(len(processed_page_list))
         processed_image_stack = np.stack(processed_page_list)
         # print('processed_image_stack')
@@ -66,6 +73,6 @@ for file in os.listdir(file_path):
         # print(len(processed_image_stack))
 
         print(f'Writing image {name}.tif')
-        with tiff.TiffWriter(os.path.join(file_path, f"{name}.tif"), imagej=True) as tifw:
+        with tiff.TiffWriter(os.path.join(file_path, f"{name}_processed.tif"), imagej=True) as tifw:
             tifw.write(processed_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
 
