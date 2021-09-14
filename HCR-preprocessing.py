@@ -68,7 +68,7 @@ for file in os.listdir(file_path):
         third_channel_data: ndarray = c.get_image_data("ZYX", C=2, S=0, T=0)
 
         # # Determine voxel spacing - x, y for use later while writing nrrd files
-        voxel_width, voxel_height = read_voxel_size(first_channel_data)
+        voxel_width, voxel_height = c.get_physical_pixel_size()[:2]#read_voxel_size(first_channel_data)
         print(voxel_width, voxel_height)
 
         # print(first_channel_data.shape)
@@ -87,8 +87,8 @@ for file in os.listdir(file_path):
         # print('Writing the individual Channels into nrrd format!')
         #
         # print(f'Creating Reference Channel nrrd file with name : {embryo_name}_{fish_num}_ch0_{ref_ch_name}.nrrd ')
-        # nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch0_{ref_ch_name}.nrrd"), RImage,
-        #            index_order='C')
+        nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch0_{ref_ch_name}.nrrd"), RImage,
+                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
         # print(f'Creating nrrd file for Signal1 Channel with name : {embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd')
         # nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd"), S1Image,
         #            index_order='C')
