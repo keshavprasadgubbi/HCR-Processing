@@ -4,11 +4,12 @@
 # DONE: Split the Czi imagefilename into respective channels and save it as nrrd with respective names as per channels.
 
 import os
+from collections import OrderedDict
 import numpy as np
 import re
 import nrrd
 from aicsimageio import AICSImage
-import SimpleITK as sitk
+# import SimpleITK as sitk
 from numpy import ndarray
 
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\20210302_rspo1_cckb'
@@ -32,7 +33,7 @@ def split_names(f):
     print('ref_ch_name:', ref_ch_name)
     print('sig_ch1_name:', signal_ch1_name)
     print('sig_ch2_name:', signal_ch2_name)
-    print('embryo_name:', embryo_name)
+    print('embryo_name:', e_name)
     return fish_number, reference_ch_name, signal_ch1_name, signal_ch2_name, e_name
 
 
@@ -42,8 +43,18 @@ def get_image_data(f):
     # can be verified by in Fiji by [ image -> Properties]
     voxel_x, voxel_y, voxel_z = f.get_physical_pixel_size()[:3]  # read_voxel_size(first_channel_data)
     if voxel_z != 1e-6:
-        print("Unwanted Voxel depth Value. Will be reset to : 1e-6.")
+        # Warning to user if voxel depth is being reset to 1micron, to be compatible with zebrafish pipeline
+        print(f"Unsuitable voxel depth Value: {voxel_z}. Will be reset to : 1e-6.")
     return num_stacks, h, w, voxel_x, voxel_y, voxel_z
+
+
+def image_to_nrrd(channel_num, image, channel_name):
+    Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
+    image_name = f'{embryo_name}_{fish_num}_ch{channel_num}_{channel_name}'
+    print(f'Creating nrrd image with name : {image_name}.nrrd')
+    nrrd_image = nrrd.write(os.path.join(preprocessed_path, f"{image_name}.nrrd"), image, index_order='C',
+                            header=Header)
+    return nrrd_image
 
 
 # def image_to_nrrd(image, channel_name, channel_num):
@@ -84,29 +95,23 @@ for file in os.listdir(file_path):
         S1Image: ndarray = np.stack(second_channel_data).astype('uint8')
         S2Image: ndarray = np.stack(third_channel_data).astype('uint8')
 
-
-        def image_to_nrrd(image, channel_name, channel_num):
-            Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
-            image_name = f'{embryo_name}_{fish_num}_{channel_num}_{channel_name}'
-            print(f'Creating nrrd image with name : {image_name}.nrrd')
-            nrrd_image = nrrd.write(os.path.join(preprocessed_path, f"{image_name}.nrrd"), image, index_order='C',
-                                    header=Header)
-            return nrrd_image
-
-
         # # ### Writing the individual Channels into nrrd format
-        print('Writing the individual Channels into nrrd format!')
-        
+        print('Writing the individual Channels into nrrd image format!')
+        HCR = OrderedDict([('RImage', 'reference_ch_name'), ('S1Image', 'sig_ch1_name'), ('S2Image', 'sig_ch2_name')])
 
+        # for (index, key) in zip(range(3), HCR):
+        #     print(index, key, HCR[key])
+        #     Reference_nrrd_image = image_to_nrrd(index, RImage, HCR[key])
+        #     Signal1_nrrd_image = image_to_nrrd(index, S1Image, HCR[key])
+        #     Signal2_nrrd_image = image_to_nrrd(index, S2Image, HCR[key])
 
-
-        # nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch0_{reference_ch_name}.nrrd"), RImage,
-        #            index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
-        # print(f'Creating nrrd file for Signal1 Channel with name : {embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd')
-        # nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd"), S1Image,
-        #            index_order='C')
-        # print(f'Creating nrrd file Signal2 Channel with name : {embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd')
-        # nrrd.write(os.path.join(processed_path, f"{embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd"), S2Image,
-        #            index_order='C')
+        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch0_{reference_ch_name}.nrrd"), RImage,
+                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
+        print(f'Creating nrrd file for Signal1 Channel with name : {embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd')
+        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd"), S1Image,
+                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
+        print(f'Creating nrrd file Signal2 Channel with name : {embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd')
+        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd"), S2Image,
+                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
 
         print(f'###################### Completed processing {file} ###################### ')
