@@ -24,8 +24,8 @@ def create_channel_folder(path):
 
 
 def split_names(f):
-    e_name, signal_ch1_name, signal_ch2_name, reference_ch_name = re.split(r'_ch\d_', f)
-    d, ext = reference_ch_name.split('.', 1)
+    e_name, signal_ch1_name, signal_ch2_name, refe_ch_name = re.split(r'_ch\d_', f)
+    d, ext = refe_ch_name.split('.', 1)
     ref_ch_name, fish_number = d.split('_', 1)
     e1_name, f = e_name.rsplit('_', 1)
     days, e_name = e1_name.split('_', 1)
@@ -34,7 +34,7 @@ def split_names(f):
     print('sig_ch1_name:', signal_ch1_name)
     print('sig_ch2_name:', signal_ch2_name)
     print('embryo_name:', e_name)
-    return fish_number, reference_ch_name, signal_ch1_name, signal_ch2_name, e_name
+    return fish_number, ref_ch_name, signal_ch1_name, signal_ch2_name, e_name
 
 
 def get_image_data(f):
@@ -97,7 +97,7 @@ for file in os.listdir(file_path):
 
         # # ### Writing the individual Channels into nrrd format
         print('Writing the individual Channels into nrrd image format!')
-        HCR = OrderedDict([('RImage', 'reference_ch_name'), ('S1Image', 'sig_ch1_name'), ('S2Image', 'sig_ch2_name')])
+        # HCR = OrderedDict([('RImage', 'reference_ch_name'), ('S1Image', 'sig_ch1_name'), ('S2Image', 'sig_ch2_name')])
 
         # for (index, key) in zip(range(3), HCR):
         #     print(index, key, HCR[key])
