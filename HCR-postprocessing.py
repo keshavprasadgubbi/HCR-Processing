@@ -21,17 +21,6 @@ from scipy import ndimage
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\aligned\ccka_4'
 
 
-def convert_to_8bit(f):
-    print("********Checking Image Type********")
-    # img = io.imread(f)
-    dtype = f.dtype
-    print('Old data type:',dtype)
-    if dtype != 'uint8':
-        f.astype('uint8', copy=False)
-        print('New data type:', dtype)
-    return f.astype('uint8')
-
-
 def image_to_tiff(image):
     print(f'Creating file {name}.tif')
     # metadata={'spacing': ['1./VoxelSizeList[0]', '1./VoxelSizeList[0]', '1'], 'unit': 'um',
@@ -60,9 +49,8 @@ for file in os.listdir(file_path):
         aligned_image = sitk.ReadImage(os.path.join(file_path, file))
         aligned_image_array_list = list(sitk.GetArrayFromImage(aligned_image))
         # we now have a list of 2D images and I can do processing on them and then restack them.
-        for image in aligned_image_array_list:
-            # print(image.shape)
 
+        for image in aligned_image_array_list:
             ce_image = contrast_enhancement(image)
             min_filter_image = ndimage.minimum_filter(ce_image, size=1)
             # filtered_image1 = cv.medianBlur(ce_image, 1)
