@@ -4,12 +4,10 @@
 # DONE: Split the Czi imagefilename into respective channels and save it as nrrd with respective names as per channels.
 
 import os
-from collections import OrderedDict
 import numpy as np
 import re
 import nrrd
 from aicsimageio import AICSImage
-# import SimpleITK as sitk
 from numpy import ndarray
 
 file_path = r'C:\Users\keshavgubbi\Desktop\HCR\raw_data\20210302_rspo1_cckb'
@@ -52,18 +50,7 @@ def image_to_nrrd(channel_num, image, channel_name):
     Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
     image_name = f'{embryo_name}_{fish_num}_ch{channel_num}_{channel_name}'
     print(f'Creating nrrd image with name : {image_name}.nrrd')
-    nrrd_image = nrrd.write(os.path.join(preprocessed_path, f"{image_name}.nrrd"), image, index_order='C',
-                            header=Header)
-    return nrrd_image
-
-
-# def image_to_nrrd(image, channel_name, channel_num):
-#     writer = sitk.ImageFileWriter()
-#     outputImageFileName = f"{embryo_name}_{fish_num}_{channel_num}_{channel_name}"
-#     writer.SetFileName(outputImageFileName)
-#     Header = {'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]}
-#     writer.Execute(os.path.join(preprocessed_path, "outputImageFileName.nrrd"), image, header=Header)
-#     return
+    return nrrd.write(os.path.join(preprocessed_path, f"{image_name}.nrrd"), image, index_order='C', header=Header)
 
 
 ########Splitting Channels####################
@@ -97,21 +84,9 @@ for file in os.listdir(file_path):
 
         # # ### Writing the individual Channels into nrrd format
         print('Writing the individual Channels into nrrd image format!')
-        # HCR = OrderedDict([('RImage', 'reference_ch_name'), ('S1Image', 'sig_ch1_name'), ('S2Image', 'sig_ch2_name')])
 
-        # for (index, key) in zip(range(3), HCR):
-        #     print(index, key, HCR[key])
-        #     Reference_nrrd_image = image_to_nrrd(index, RImage, HCR[key])
-        #     Signal1_nrrd_image = image_to_nrrd(index, S1Image, HCR[key])
-        #     Signal2_nrrd_image = image_to_nrrd(index, S2Image, HCR[key])
-
-        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch0_{reference_ch_name}.nrrd"), RImage,
-                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
-        print(f'Creating nrrd file for Signal1 Channel with name : {embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd')
-        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch1_{sig_ch1_name}.nrrd"), S1Image,
-                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
-        print(f'Creating nrrd file Signal2 Channel with name : {embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd')
-        nrrd.write(os.path.join(preprocessed_path, f"{embryo_name}_{fish_num}_ch2_{sig_ch2_name}.nrrd"), S2Image,
-                   index_order='C', header={'units': ['m', 'm', 'm'], 'spacings': [voxel_width, voxel_height, 1e-6]})
+        Reference_nrrd_image: nrrd = image_to_nrrd(0, RImage, reference_ch_name)
+        Signal1_nrrd_image: nrrd = image_to_nrrd(1, S1Image, sig_ch1_name)
+        Signal2_nrrd_image: nrrd = image_to_nrrd(2, S2Image, sig_ch1_name)
 
         print(f'###################### Completed processing {file} ###################### ')
