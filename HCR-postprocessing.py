@@ -13,12 +13,7 @@
 
 
 import os
-from skimage import exposure
-from skimage.filters.rank import mean_bilateral
-from skimage.restoration import  denoise_bilateral
-from skimage.morphology import disk
-from skimage.filters import gaussian
-import cv2
+import cv2 as cv
 import numpy as np
 import tifffile as tiff
 import SimpleITK as sitk
@@ -33,14 +28,23 @@ def convert_to_8bit(f):
     print('Old data type:',dtype)
     if dtype != 'uint8':
         f.astype('uint8', copy=False)
-        print('New data type:',dtype)
+        print('New data type:', dtype)
     return f.astype('uint8')
 
 
-def ce(f):
-    # i = img_as_float(io.imread(f)).astype(np.float64)
-    logarithmic_corrected = exposure.adjust_log(f, 50)
-    return logarithmic_corrected
+def image_to_tiff(image):
+    print(f'Creating file {name}.tif')
+    # metadata={'spacing': ['1./VoxelSizeList[0]', '1./VoxelSizeList[0]', '1'], 'unit': 'um',
+    #                                   'axes ': 'ZYX', 'imagej': 'True'}
+    return tiff.imwrite(os.path.join(file_path, f"{name}.tif"), image)
+
+
+def contrast_enhancement(f):
+    alpha = 3.0  # Contrast control (1.0-3.0) but 3 is required for my purposes here
+    beta = 1  # Brightness control (0-100). Not to be added beyond 5, to not hamper the signal with salt and pepper
+    # noise.
+    contrast_enhanced_image = cv.convertScaleAbs(f, alpha=alpha, beta=beta)
+    return contrast_enhanced_image.astype('uint8')
 
 
 def split_and_rename(f):
@@ -48,31 +52,22 @@ def split_and_rename(f):
     return filename
 
 
-processed_page_list = []
 for file in os.listdir(file_path):
     if file.endswith('.nrrd'):
         print(file)
+        processed_page_list = []
         name = split_and_rename(file)
         aligned_image = sitk.ReadImage(os.path.join(file_path, file))
         aligned_image_array_list = list(sitk.GetArrayFromImage(aligned_image))
         # we now have a list of 2D images and I can do processing on them and then restack them.
-        print(len(aligned_image_array_list))
         for image in aligned_image_array_list:
             # print(image.shape)
-            ce_image = ce(image)
+
+            ce_image = contrast_enhancement(image)
             min_filter_image = ndimage.minimum_filter(ce_image, size=1)
-            # filtered_image1 = cv2.medianBlur(ce_image, 1)
-            filtered_image = cv2.bilateralFilter(min_filter_image.astype('uint8'), 9, 75, 75)
-
-
+            # filtered_image1 = cv.medianBlur(ce_image, 1)
+            filtered_image = cv.bilateralFilter(min_filter_image.astype('uint8'), 9, 75, 75)
             processed_page_list.append(filtered_image)
-        # print(len(processed_page_list))
+
         processed_image_stack = np.stack(processed_page_list)
-        # print('processed_image_stack')
-        # print(processed_image_stack.shape)
-        # print(len(processed_image_stack))
-
-        print(f'Writing image {name}.tif')
-        with tiff.TiffWriter(os.path.join(file_path, f"{name}_processed.tif"), imagej=True) as tifw:
-            tifw.write(processed_image_stack.astype('uint8'), metadata={'spacing': 1.0, 'unit': 'um', 'axes': 'ZYX'})
-
+        processed_tiff_image = image_to_tiff(processed_image_stack)
